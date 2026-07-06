@@ -6,12 +6,12 @@ function App() {
   const [version, setVersion] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:8000/health")
+    fetch("/api/health")
       .then((res) => res.json())
       .then((data) => setHealth(data))
       .catch(() => setHealth({ status: "DOWN" }));
 
-    fetch("http://localhost:8000/version")
+    fetch("/api/version")
       .then((res) => res.json())
       .then((data) => setVersion(data));
   }, []);
