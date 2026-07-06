@@ -1,17 +1,22 @@
-import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-DB_USER = os.getenv("POSTGRES_USER", "admin")
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "admin123")
-DB_NAME = os.getenv("POSTGRES_DB", "cicd_db")
-DB_HOST = os.getenv("DB_HOST", "postgres")
+from app.config import settings
 
 DATABASE_URL = (
-    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:5432/{DB_NAME}"
+    f"postgresql://"
+    f"{settings.POSTGRES_USER}:"
+    f"{settings.POSTGRES_PASSWORD}@"
+    f"{settings.DB_HOST}:"
+    f"{settings.DB_PORT}/"
+    f"{settings.POSTGRES_DB}"
 )
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True
+)
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -20,11 +25,3 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
