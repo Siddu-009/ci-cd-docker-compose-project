@@ -1,59 +1,35 @@
-name: CI/CD Kubernetes Deployment
+name: Runner Test
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
 
 jobs:
-  deploy:
+  test:
     runs-on:
       - self-hosted
       - Windows
       - X64
 
-    defaults:
-      run:
-        shell: powershell
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify Docker
+      - name: Hello
+        run: echo "Runner is working"
+
+      - name: Hostname
+        run: hostname
+
+      - name: WhoAmI
+        run: whoami
+
+      - name: Docker
         run: docker --version
 
-      - name: Verify Kubectl
+      - name: Kubectl
         run: kubectl version --client
 
-      - name: Verify Helm
+      - name: Helm
         run: helm version
-
-      - name: Docker Login
-        run: |
-          docker login -u "${{ secrets.DOCKER_USERNAME }}" -p "${{ secrets.DOCKER_PASSWORD }}"
-
-      - name: Build Backend
-        run: |
-          docker build -t siddu009/automation-backend:latest ./backend
-
-      - name: Build Frontend
-        run: |
-          docker build -t siddu009/automation-frontend:latest ./frontend
-
-      - name: Push Backend
-        run: |
-          docker push siddu009/automation-backend:latest
-
-      - name: Push Frontend
-        run: |
-          docker push siddu009/automation-frontend:latest
-
-      - name: Deploy using Helm
-        run: |
-          helm upgrade --install automation ./automation-chart --namespace automation --create-namespace
-
-      - name: Verify Deployment
-        run: |
-          kubectl get pods -n automation
-          kubectl get svc -n automation
-          kubectl get ingress -n automation
