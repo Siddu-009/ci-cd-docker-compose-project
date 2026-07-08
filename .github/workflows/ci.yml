@@ -1,96 +1,21 @@
-name: CI/CD Kubernetes Deployment
+name: Runner Debug
 
 on:
-  push:
-    branches:
-      - main
-
   workflow_dispatch:
 
 jobs:
-  deploy:
+  debug:
     runs-on:
       - self-hosted
       - Windows
       - X64
 
-    env:
-      IMAGE_TAG: ${{ github.sha }}
-
     steps:
+      - name: Hello
+        run: echo Hello
 
-      # Checkout Source
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Hostname
+        run: hostname
 
-      # Verify Tools
-      - name: Verify Docker
-        run: docker --version
-
-      - name: Verify Kubectl
-        run: kubectl version --client
-
-      - name: Verify Helm
-        run: helm version
-
-      # Login to DockerHub
-      - name: Docker Login
-        run: |
-          docker login -u "${{ secrets.DOCKER_USERNAME }}" -p "${{ secrets.DOCKER_PASSWORD }}"
-
-      # Build Backend
-      - name: Build Backend Image
-        run: |
-          docker build -t siddu009/automation-backend:${{ env.IMAGE_TAG }} ./backend
-          docker tag siddu009/automation-backend:${{ env.IMAGE_TAG }} siddu009/automation-backend:latest
-
-      # Build Frontend
-      - name: Build Frontend Image
-        run: |
-          docker build -t siddu009/automation-frontend:${{ env.IMAGE_TAG }} ./frontend
-          docker tag siddu009/automation-frontend:${{ env.IMAGE_TAG }} siddu009/automation-frontend:latest
-
-      # Push Backend
-      - name: Push Backend Image
-        run: |
-          docker push siddu009/automation-backend:${{ env.IMAGE_TAG }}
-          docker push siddu009/automation-backend:latest
-
-      # Push Frontend
-      - name: Push Frontend Image
-        run: |
-          docker push siddu009/automation-frontend:${{ env.IMAGE_TAG }}
-          docker push siddu009/automation-frontend:latest
-
-      # Deploy to Kubernetes using Helm
-      - name: Deploy using Helm
-        run: >
-          helm upgrade --install automation ./automation-chart
-          --namespace automation
-          --create-namespace
-          --set backend.image.tag=${{ env.IMAGE_TAG }}
-          --set frontend.image.tag=${{ env.IMAGE_TAG }}
-
-      # Wait for Deployments
-      - name: Wait for Backend
-        run: kubectl rollout status deployment/backend -n automation
-
-      - name: Wait for Frontend
-        run: kubectl rollout status deployment/frontend -n automation
-
-      - name: Wait for Postgres
-        run: kubectl rollout status deployment/postgres -n automation
-
-      # Verify Kubernetes Resources
-      - name: Get Pods
-        run: kubectl get pods -n automation
-
-      - name: Get Services
-        run: kubectl get svc -n automation
-
-      - name: Get Ingress
-        run: kubectl get ingress -n automation
-
-      # Success Message
-      - name: Deployment Successful
-        run: echo "Application deployed successfully!"
+      - name: Current Directory
+        run: pwd
