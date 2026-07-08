@@ -1,0 +1,22 @@
+name: Local Runner Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+
+    steps:
+      - name: Hello
+        shell: powershell
+        run: |
+          echo "Runner Works"
+          hostname
+          whoami
+          docker --version
+          kubectl version --client
+          helm version
