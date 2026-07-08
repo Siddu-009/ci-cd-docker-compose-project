@@ -1,4 +1,118 @@
-name: Runner Test
+name: CI/CD Kubernetes Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+
+      ####################################################
+      # Checkout
+      ####################################################
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      ####################################################
+      # Verify Tools
+      ####################################################
+
+      - name: Docker Version
+        run: docker --version
+
+      - name: Kubectl Version
+        run: kubectl version --client
+
+      - name: Helm Version
+        run: helm version
+
+      ####################################################
+      # Login
+      ####################################################
+
+      - name: Docker Login
+        run: |
+          docker login -u "${{ secrets.DOCKER_USERNAME }}" -p "${{ secrets.DOCKER_PASSWORD }}"
+
+      ####################################################
+      # Build Images
+      ####################################################
+
+      - name: Build Backend
+        run: |
+          docker build -t siddu009/automation-backend:${{ env.IMAGE_TAG }} ./backend
+          docker tag siddu009/automation-backend:${{ env.IMAGE_TAG }} siddu009/automation-backend:latest
+
+      - name: Build Frontend
+        run: |
+          docker build -t siddu009/automation-frontend:${{ env.IMAGE_TAG }} ./frontend
+          docker tag siddu009/automation-frontend:${{ env.IMAGE_TAG }} siddu009/automation-frontend:latest
+
+      ####################################################
+      # Push Images
+      ####################################################
+
+      - name: Push Backend
+        run: |
+          docker push siddu009/automation-backend:${{ env.IMAGE_TAG }}
+          docker push siddu009/automation-backend:latest
+
+      - name: Push Frontend
+        run: |
+          docker push siddu009/automation-frontend:${{ env.IMAGE_TAG }}
+          docker push siddu009/automation-frontend:latest
+
+      ####################################################
+      # Helm Deployment
+      ####################################################
+
+      - name: Deploy Helm
+        run: |
+          helm upgrade --install automation ./automation-chart `
+            --namespace automation `
+            --create-namespace `
+            --set backend.image.tag=${{ env.IMAGE_TAG }} `
+            --set frontend.image.tag=${{ env.IMAGE_TAG }}
+
+      ####################################################
+      # Verify Deployment
+      ####################################################
+
+      - name: Rollout Backend
+        run: kubectl rollout status deployment/backend -n automation
+
+      - name: Rollout Frontend
+        run: kubectl rollout status deployment/frontend -n automation
+
+      - name: Rollout Postgres
+        run: kubectl rollout status deployment/postgres -n automation
+
+      ####################################################
+      # Verify Resources
+      ####################################################
+
+      - name: Get Pods
+        run: kubectl get pods -n automation
+
+      - name: Get Services
+        run: kubectl get svc -n automation
+
+      - name: Get Ingress
+        run: kubectl get ingress -n automationname: Runner Test
 
 on:
   workflow_dispatch:
