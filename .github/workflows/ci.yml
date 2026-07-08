@@ -5,14 +5,8 @@ on:
     branches:
       - main
 
-env:
-  BACKEND_IMAGE: siddu009/automation-backend
-  FRONTEND_IMAGE: siddu009/automation-frontend
-  IMAGE_TAG: latest
-
 jobs:
   deploy:
-
     runs-on:
       - self-hosted
       - Windows
@@ -23,110 +17,43 @@ jobs:
         shell: powershell
 
     steps:
+      - uses: actions/checkout@v4
 
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Verify Docker
+        run: docker --version
 
-    #################################################
-    # Python
-    #################################################
+      - name: Verify Kubectl
+        run: kubectl version --client
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
+      - name: Verify Helm
+        run: helm version
 
-    #################################################
-    # Backend Tests
-    #################################################
+      - name: Docker Login
+        run: |
+          docker login -u "${{ secrets.DOCKER_USERNAME }}" -p "${{ secrets.DOCKER_PASSWORD }}"
 
-    - name: Install Backend Dependencies
-      working-directory: backend
-      run: |
-        pip install -r requirements.txt
+      - name: Build Backend
+        run: |
+          docker build -t siddu009/automation-backend:latest ./backend
 
-    - name: Run Pytest
-      working-directory: backend
-      run: |
-        pytest
+      - name: Build Frontend
+        run: |
+          docker build -t siddu009/automation-frontend:latest ./frontend
 
-    #################################################
-    # Docker Login
-    #################################################
+      - name: Push Backend
+        run: |
+          docker push siddu009/automation-backend:latest
 
-    - name: Docker Login
-      run: |
-        docker login -u "${{ secrets.DOCKER_USERNAME }}" -p "${{ secrets.DOCKER_PASSWORD }}"
+      - name: Push Frontend
+        run: |
+          docker push siddu009/automation-frontend:latest
 
-    #################################################
-    # Build Backend
-    #################################################
+      - name: Deploy using Helm
+        run: |
+          helm upgrade --install automation ./automation-chart --namespace automation --create-namespace
 
-    - name: Build Backend Image
-      run: |
-        docker build -t $env:BACKEND_IMAGE:$env:IMAGE_TAG ./backend
-
-    #################################################
-    # Build Frontend
-    #################################################
-
-    - name: Build Frontend Image
-      run: |
-        docker build -t $env:FRONTEND_IMAGE:$env:IMAGE_TAG ./frontend
-
-    #################################################
-    # Push Backend
-    #################################################
-
-    - name: Push Backend Image
-      run: |
-        docker push $env:BACKEND_IMAGE:$env:IMAGE_TAG
-
-    #################################################
-    # Push Frontend
-    #################################################
-
-    - name: Push Frontend Image
-      run: |
-        docker push $env:FRONTEND_IMAGE:$env:IMAGE_TAG
-
-    #################################################
-    # Verify Kubernetes
-    #################################################
-
-    - name: Check Cluster
-      run: |
-        kubectl cluster-info
-        kubectl get nodes
-
-    #################################################
-    # Helm Deployment
-    #################################################
-
-    - name: Helm Upgrade
-      run: |
-        helm upgrade --install automation ./automation-chart --namespace automation --create-namespace
-
-    #################################################
-    # Verify Deployment
-    #################################################
-
-    - name: Verify Pods
-      run: |
-        kubectl get pods -n automation
-
-    #################################################
-    # Verify Services
-    #################################################
-
-    - name: Verify Services
-      run: |
-        kubectl get svc -n automation
-
-    #################################################
-    # Verify Ingress
-    #################################################
-
-    - name: Verify Ingress
-      run: |
-        kubectl get ingress -n automation
+      - name: Verify Deployment
+        run: |
+          kubectl get pods -n automation
+          kubectl get svc -n automation
+          kubectl get ingress -n automation
